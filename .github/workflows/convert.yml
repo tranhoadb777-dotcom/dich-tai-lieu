@@ -14,50 +14,77 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Lấy toàn bộ repository
+
+      # ============================================
+      # 1. Lấy repository
+      # ============================================
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
+      # ============================================
       # 2. Cài Pandoc
+      # ============================================
       - name: Install Pandoc
         uses: pandoc/actions/setup@v1
 
-      # 3. Cài công cụ xử lý PDF và Excel
-      - name: Install system packages
+
+      # ============================================
+      # 3. Cài công cụ PDF + OCR
+      # ============================================
+      - name: Install PDF and OCR tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y poppler-utils python3-pip
 
-      # 4. Cài thư viện Python
+          sudo apt-get install -y \
+            poppler-utils \
+            tesseract-ocr \
+            tesseract-ocr-vie \
+            tesseract-ocr-eng \
+            ghostscript
+
+
+      # ============================================
+      # 4. Cài Python
+      # ============================================
       - name: Install Python packages
         run: |
           python3 -m pip install --upgrade pip
-          pip install pandas openpyxl xlrd
 
-      # 5. Chuyển tài liệu sang Markdown
-      - name: Convert files to Markdown
+          pip install \
+            pandas \
+            openpyxl \
+            xlrd \
+            tabulate \
+            python-pptx
+
+
+      # ============================================
+      # 5. Convert DOCX
+      # ============================================
+      - name: Convert DOCX to Markdown
         shell: bash
         run: |
 
-          mkdir -p output
+          find input -type f -iname "*.docx" -print0 |
+          while IFS= read -r -d '' file; do
 
-          # ==========================================
-          # DOCX / PPTX → Markdown bằng Pandoc
-          # ==========================================
-
-          find input -type f \( \
-            -iname "*.docx" -o \
-            -iname "*.pptx" \
-          \) -print0 | while IFS= read -r -d '' file; do
-
-            filename="$(basename "$file")"
+            relative="${file#input/}"
+            dir="$(dirname "$relative")"
+            filename="$(basename "$relative")"
             name="${filename%.*}"
-            output="output/${name}.md"
 
-            echo "Converting: $file"
+            output="output/${dir}/${name}.md"
+
+            mkdir -p "$(dirname "$output")"
+
+            echo "========================================"
+            echo "DOCX: $file"
+            echo "OUT : $output"
+            echo "========================================"
 
             pandoc "$file" \
-              --from="${filename##*.}" \
+              --from=docx \
               --to=gfm \
               --wrap=none \
               --output="$output"
@@ -65,36 +92,462 @@ jobs:
           done
 
 
-          # ==========================================
-          # PDF → Markdown
-          # ==========================================
+      # ============================================
+      # 6. Convert PPTX bằng python-pptx
+      # ============================================
+      - name: Convert PPTX to Markdown
+        shell: bash
+        run: |
 
-          find input -type f -iname "*.pdf" -print0 | while IFS= read -r -d '' file; do
+          python3 <<'PY'
 
-            filename="$(basename "$file")"
+          import os
+          from pptx import Presentation
+
+          INPUT = "input"
+          OUTPUT = "output"
+
+
+          def extract_shape_text(shape):
+
+              result = []
+
+              # Text thông thường
+              if hasattr(shape, "text") and shape.text:
+                  text = shape.text.strip()
+
+                  if text:
+                      result.append(text)
+
+              # Bảng
+              if getattr(shape, "has_table", False):
+
+                  rows = []
+
+                  for row in shape.table.rows:
+
+                      cells = []
+
+                      for cell in row.cells:
+                          cells.append(cell.text.strip().replace("\n", " "))
+
+                      rows.append(cells)
+
+                  if rows:
+
+                      # Header
+                      header = rows[0]
+
+                      result.append(
+                          "| " + " | ".join(header) + " |"
+                      )
+
+                      result.append(
+                          "| " +
+                          " | ".join(["---"] * len(header)) +
+                          " |"
+                      )
+
+                      for row in rows[1:]:
+
+                          # Bảo đảm số cột
+                          row = row + [""] * (len(header) - len(row))
+
+                          result.append(
+                              "| " +
+                              " | ".join(row[:len(header)]) +
+                              " |"
+                          )
+
+              return result
+
+
+          for root, dirs, files in os.walk(INPUT):
+
+              for filename in files:
+
+                  if not filename.lower().endswith(".pptx"):
+                      continue
+
+                  source = os.path.join(root, filename)
+
+                  relative = os.path.relpath(source, INPUT)
+
+                  relative_dir = os.path.dirname(relative)
+
+                  name = os.path.splitext(
+                      os.path.basename(relative)
+                  )[0]
+
+                  output_dir = os.path.join(
+                      OUTPUT,
+                      relative_dir
+                  )
+
+                  os.makedirs(output_dir, exist_ok=True)
+
+                  output = os.path.join(
+                      output_dir,
+                      name + ".md"
+                  )
+
+                  print(f"Converting PPTX: {source}")
+
+                  prs = Presentation(source)
+
+                  with open(
+                      output,
+                      "w",
+                      encoding="utf-8"
+                  ) as md:
+
+                      md.write(f"# {name}\n\n")
+
+                      for index, slide in enumerate(
+                          prs.slides,
+                          start=1
+                      ):
+
+                          md.write(
+                              f"## Slide {index}\n\n"
+                          )
+
+                          slide_text = []
+
+                          for shape in slide.shapes:
+
+                              slide_text.extend(
+                                  extract_shape_text(shape)
+                              )
+
+                          # Speaker notes
+                          try:
+
+                              notes = slide.notes_slide
+
+                              if notes and notes.notes_text_frame:
+
+                                  notes_text = (
+                                      notes.notes_text_frame.text
+                                      .strip()
+                                  )
+
+                                  if notes_text:
+                                      slide_text.append(
+                                          "### Speaker Notes\n\n"
+                                          + notes_text
+                                      )
+
+                          except Exception:
+                              pass
+
+
+                          if slide_text:
+
+                              for text in slide_text:
+
+                                  md.write(
+                                      text.strip()
+                                      + "\n\n"
+                                  )
+
+                          else:
+
+                              md.write(
+                                  "_Slide không có văn bản._\n\n"
+                              )
+
+          PY
+
+
+      # ============================================
+      # 7. Convert PDF
+      # ============================================
+      - name: Convert PDF to Markdown
+        shell: bash
+        run: |
+
+          find input -type f -iname "*.pdf" -print0 |
+          while IFS= read -r -d '' file; do
+
+            relative="${file#input/}"
+            dir="$(dirname "$relative")"
+            filename="$(basename "$relative")"
             name="${filename%.*}"
-            output="output/${name}.md"
 
-            echo "Converting PDF: $file"
+            output="output/${dir}/${name}.md"
 
-            pdftotext -layout "$file" - \
-              | sed 's/[[:space:]]*$//' \
-              > "$output"
+            mkdir -p "$(dirname "$output")"
+
+            echo "========================================"
+            echo "PDF: $file"
+            echo "OUT: $output"
+            echo "========================================"
+
+            # ----------------------------------------
+            # Bước 1: Thử lấy text trực tiếp
+            # ----------------------------------------
+
+            pdftotext \
+              -layout \
+              -enc UTF-8 \
+              "$file" \
+              "$output"
+
+            # ----------------------------------------
+            # Đếm số trang
+            # ----------------------------------------
+
+            pages=$(pdfinfo "$file" 2>/dev/null |
+                    awk '/^Pages:/ {print $2}')
+
+            if [ -z "$pages" ]; then
+              pages=1
+            fi
+
+            chars=$(wc -m < "$output")
+
+            echo "Pages : $pages"
+            echo "Chars : $chars"
+
+            # ----------------------------------------
+            # Tính mật độ text
+            # ----------------------------------------
+
+            if [ "$pages" -gt 0 ]; then
+              chars_per_page=$((chars / pages))
+            else
+              chars_per_page=$chars
+            fi
+
+            echo "Chars/page: $chars_per_page"
+
+            # ----------------------------------------
+            # Nếu text quá ít → OCR
+            # ----------------------------------------
+
+            if [ "$chars_per_page" -lt 100 ]; then
+
+              echo "PDF appears to be scanned."
+              echo "Running Vietnamese OCR..."
+
+              mkdir -p /tmp/ocr
+
+              ocrmypdf \
+                --language vie+eng \
+                --deskew \
+                --clean \
+                --force-ocr \
+                "$file" \
+                "/tmp/ocr/output.pdf"
+
+              pdftotext \
+                -layout \
+                -enc UTF-8 \
+                "/tmp/ocr/output.pdf" \
+                "$output"
+
+              rm -rf /tmp/ocr
+
+            fi
+
+            # ----------------------------------------
+            # Làm sạch nhẹ
+            # Không xóa nội dung
+            # ----------------------------------------
+
+            sed -i 's/\r$//' "$output"
+
+            sed -i 's/[[:space:]]*$//' "$output"
 
           done
 
 
-          # ==========================================
-          # TXT → Markdown
-          # ==========================================
+      # ============================================
+      # 8. Convert XLS / XLSX
+      # ============================================
+      - name: Convert Excel to Markdown
+        shell: bash
+        run: |
 
-          find input -type f -iname "*.txt" -print0 | while IFS= read -r -d '' file; do
+          python3 <<'PY'
 
-            filename="$(basename "$file")"
+          import os
+          import pandas as pd
+
+          INPUT = "input"
+          OUTPUT = "output"
+
+
+          for root, dirs, files in os.walk(INPUT):
+
+              for filename in files:
+
+                  if not filename.lower().endswith(
+                      (".xls", ".xlsx")
+                  ):
+                      continue
+
+                  source = os.path.join(
+                      root,
+                      filename
+                  )
+
+                  relative = os.path.relpath(
+                      source,
+                      INPUT
+                  )
+
+                  relative_dir = os.path.dirname(
+                      relative
+                  )
+
+                  name = os.path.splitext(
+                      os.path.basename(relative)
+                  )[0]
+
+                  output_dir = os.path.join(
+                      OUTPUT,
+                      relative_dir
+                  )
+
+                  os.makedirs(
+                      output_dir,
+                      exist_ok=True
+                  )
+
+                  output = os.path.join(
+                      output_dir,
+                      name + ".md"
+                  )
+
+                  print(
+                      f"Converting Excel: {source}"
+                  )
+
+                  try:
+
+                      excel = pd.ExcelFile(
+                          source
+                      )
+
+                      with open(
+                          output,
+                          "w",
+                          encoding="utf-8"
+                      ) as md:
+
+                          md.write(
+                              f"# {name}\n\n"
+                          )
+
+                          for sheet in excel.sheet_names:
+
+                              md.write(
+                                  f"## Sheet: {sheet}\n\n"
+                              )
+
+                              try:
+
+                                  df = pd.read_excel(
+                                      source,
+                                      sheet_name=sheet,
+                                      dtype=str
+                                  )
+
+                                  df = df.fillna("")
+
+                                  # Xóa dòng hoàn toàn trống
+                                  df = df.loc[
+                                      df.astype(str)
+                                      .apply(
+                                          lambda row:
+                                          row.str.strip()
+                                          .ne("")
+                                          .any(),
+                                          axis=1
+                                      )
+                                  ]
+
+                                  # Xóa cột hoàn toàn trống
+                                  df = df.loc[
+                                      :,
+                                      df.astype(str)
+                                      .apply(
+                                          lambda col:
+                                          col.str.strip()
+                                          .ne("")
+                                          .any(),
+                                          axis=0
+                                      )
+                                  ]
+
+                                  if df.empty:
+
+                                      md.write(
+                                          "_Sheet không có dữ liệu._\n\n"
+                                      )
+
+                                  else:
+
+                                      md.write(
+                                          df.to_markdown(
+                                              index=False,
+                                              tablefmt="github"
+                                          )
+                                      )
+
+                                      md.write(
+                                          "\n\n"
+                                      )
+
+                              except Exception as e:
+
+                                  md.write(
+                                      f"> Lỗi đọc sheet: {e}\n\n"
+                                  )
+
+                  except Exception as e:
+
+                      print(
+                          f"ERROR: {source}: {e}"
+                      )
+
+                      with open(
+                          output,
+                          "w",
+                          encoding="utf-8"
+                      ) as md:
+
+                          md.write(
+                              f"# {name}\n\n"
+                          )
+
+                          md.write(
+                              f"> Không thể chuyển đổi: {e}\n"
+                          )
+
+          PY
+
+
+      # ============================================
+      # 9. Convert TXT
+      # ============================================
+      - name: Convert TXT to Markdown
+        shell: bash
+        run: |
+
+          find input -type f -iname "*.txt" -print0 |
+          while IFS= read -r -d '' file; do
+
+            relative="${file#input/}"
+            dir="$(dirname "$relative")"
+            filename="$(basename "$relative")"
             name="${filename%.*}"
-            output="output/${name}.md"
 
-            echo "Converting TXT: $file"
+            output="output/${dir}/${name}.md"
+
+            mkdir -p "$(dirname "$output")"
 
             {
               echo "# $name"
@@ -105,122 +558,32 @@ jobs:
           done
 
 
-          # ==========================================
-          # XLS / XLSX → Markdown
-          # ==========================================
-
-          python3 <<'PY'
-
-          import os
-          import pandas as pd
-
-          input_dir = "input"
-          output_dir = "output"
-
-          os.makedirs(output_dir, exist_ok=True)
-
-          for root, _, files in os.walk(input_dir):
-
-              for filename in files:
-
-                  lower = filename.lower()
-
-                  if not lower.endswith((".xls", ".xlsx")):
-                      continue
-
-                  source = os.path.join(root, filename)
-
-                  name = os.path.splitext(filename)[0]
-                  output = os.path.join(output_dir, f"{name}.md")
-
-                  print(f"Converting Excel: {source}")
-
-                  try:
-
-                      excel = pd.ExcelFile(source)
-
-                      with open(output, "w", encoding="utf-8") as md:
-
-                          md.write(f"# {name}\n\n")
-
-                          for sheet in excel.sheet_names:
-
-                              print(f"  Sheet: {sheet}")
-
-                              md.write(f"## Sheet: {sheet}\n\n")
-
-                              try:
-
-                                  df = pd.read_excel(
-                                      source,
-                                      sheet_name=sheet,
-                                      dtype=str
-                                  )
-
-                                  # Thay NaN bằng ô trống
-                                  df = df.fillna("")
-
-                                  # Loại bỏ các dòng hoàn toàn trống
-                                  df = df.loc[
-                                      (df.astype(str).apply(
-                                          lambda row: row.str.strip().ne("").any(),
-                                          axis=1
-                                      )
-                                      )
-                                  ]
-
-                                  if df.empty:
-                                      md.write("_Sheet không có dữ liệu._\n\n")
-                                  else:
-                                      md.write(
-                                          df.to_markdown(
-                                              index=False,
-                                              tablefmt="github"
-                                          )
-                                      )
-                                      md.write("\n\n")
-
-                              except Exception as e:
-
-                                  md.write(
-                                      f"> Không thể đọc sheet `{sheet}`: {e}\n\n"
-                                  )
-
-                  except Exception as e:
-
-                      print(f"ERROR: {source}: {e}")
-
-                      with open(output, "w", encoding="utf-8") as md:
-                          md.write(f"# {name}\n\n")
-                          md.write(
-                              f"> Không thể chuyển đổi file: {e}\n"
-                          )
-
-          PY
-
-
-      # 6. Làm sạch Markdown ở mức an toàn
+      # ============================================
+      # 10. Làm sạch Markdown an toàn
+      # ============================================
       - name: Clean Markdown
         shell: bash
         run: |
 
-          find output -type f -name "*.md" -print0 | while IFS= read -r -d '' file; do
+          find output -type f -name "*.md" -print0 |
+          while IFS= read -r -d '' file; do
 
             echo "Cleaning: $file"
 
-            # Chuẩn hóa CRLF → LF
+            # CRLF → LF
             sed -i 's/\r$//' "$file"
 
             # Xóa khoảng trắng cuối dòng
             sed -i 's/[[:space:]]*$//' "$file"
 
-            # Giới hạn tối đa 2 dòng trống liên tiếp
+            # Không để quá 2 dòng trống liên tiếp
             awk '
               BEGIN { blank=0 }
 
               /^[[:space:]]*$/ {
                 blank++
-                if (blank <= 2) print
+                if (blank <= 2)
+                  print
                 next
               }
 
@@ -235,20 +598,45 @@ jobs:
           done
 
 
-      # 7. Kiểm tra kết quả
-      - name: Show generated files
+      # ============================================
+      # 11. Kiểm tra kết quả
+      # ============================================
+      - name: Show results
         run: |
-          echo "===== Markdown files ====="
-          find output -type f -name "*.md" -print
+
+          echo ""
+          echo "========================================"
+          echo "MARKDOWN FILES"
+          echo "========================================"
+
+          find output \
+            -type f \
+            -name "*.md" \
+            -print
+
+          echo ""
+          echo "========================================"
+          echo "FILE SIZES"
+          echo "========================================"
+
+          find output \
+            -type f \
+            -name "*.md" \
+            -exec wc -c {} \;
 
 
-      # 8. Commit Markdown vào repository
+      # ============================================
+      # 12. Commit kết quả
+      # ============================================
       - name: Commit Markdown files
         shell: bash
         run: |
 
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name \
+            "github-actions[bot]"
+
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
 
           git add output/
 
@@ -258,7 +646,9 @@ jobs:
 
           else
 
-            git commit -m "Auto convert documents to Markdown"
+            git commit \
+              -m "Auto convert documents to Markdown"
+
             git push
 
           fi
