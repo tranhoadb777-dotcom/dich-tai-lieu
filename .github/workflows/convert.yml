@@ -1,654 +1,795 @@
+# =====================================================================
+# Chuyển tài liệu trong input/ thành Markdown trong output/
+#
+# Hỗ trợ: DOCX, DOC, ODT, RTF | PPTX, PPT, ODP | XLSX, XLSM, XLS, ODS,
+#         CSV, TSV | PDF (có chữ và bản scan, OCR tiếng Việt) |
+#         TXT, MD | Ảnh PNG, JPG, TIFF, BMP, WEBP (OCR)
+#
+# - Giữ nguyên cấu trúc thư mục: input/a/b.docx -> output/a/b.md
+# - Trùng tên khác đuôi (b.docx, b.pdf) -> output/a/b.docx.md, b.pdf.md
+# - Chỉ chuyển file mới/đã sửa; xóa .md khi file nguồn bị xóa/đổi tên
+# - Chạy lại toàn bộ: tab Actions -> Convert documents to Markdown
+#   -> Run workflow -> tích "Chuyển đổi lại toàn bộ"
+# =====================================================================
 name: Convert documents to Markdown
 
 on:
   push:
     paths:
       - "input/**"
+      - ".github/workflows/convert.yml"
   workflow_dispatch:
+    inputs:
+      force:
+        description: "Chuyển đổi lại toàn bộ (xóa sạch output/ rồi tạo lại)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
 
+# Không cho 2 lần chạy song song (tránh lỗi git push bị từ chối)
+concurrency:
+  group: convert-markdown-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   convert:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
 
     steps:
-
-      # ============================================
+      # ---------------------------------------------------------------
       # 1. Lấy repository
-      # ============================================
+      # ---------------------------------------------------------------
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # ---------------------------------------------------------------
+      # 2. Kiểm tra loại file có trong input/ để chỉ cài công cụ cần thiết
+      # ---------------------------------------------------------------
+      - name: Detect file types
+        id: detect
+        shell: bash
+        run: |
+          mkdir -p input
+          has() { find input -type f \( "$@" \) -print -quit | grep -q .; }
 
-      # ============================================
-      # 2. Cài Pandoc
-      # ============================================
+          if has -iname '*.pdf' -o -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \
+                 -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.bmp' -o -iname '*.webp'; then
+            echo "ocr=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ocr=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if has -iname '*.doc' -o -iname '*.ppt' -o -iname '*.xls' -o -iname '*.odp' -o -iname '*.ods'; then
+            echo "libreoffice=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "libreoffice=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # ---------------------------------------------------------------
+      # 3. Cài Pandoc (bản mới nhất)
+      # ---------------------------------------------------------------
       - name: Install Pandoc
         uses: pandoc/actions/setup@v1
 
-
-      # ============================================
-      # 3. Cài công cụ PDF + OCR
-      # ============================================
-      - name: Install PDF and OCR tools
+      # ---------------------------------------------------------------
+      # 4. Cài công cụ hệ thống
+      # ---------------------------------------------------------------
+      - name: Install system tools
+        shell: bash
         run: |
-          sudo apt-get update
+          sudo apt-get update -qq
+          PKGS="poppler-utils"
 
-          sudo apt-get install -y \
-            poppler-utils \
-            tesseract-ocr \
-            tesseract-ocr-vie \
-            tesseract-ocr-eng \
-            ghostscript
+          if [ "${{ steps.detect.outputs.ocr }}" = "true" ]; then
+            PKGS="$PKGS ocrmypdf tesseract-ocr tesseract-ocr-vie tesseract-ocr-eng ghostscript"
+          fi
 
+          if [ "${{ steps.detect.outputs.libreoffice }}" = "true" ]; then
+            PKGS="$PKGS libreoffice-writer-nogui libreoffice-calc-nogui libreoffice-impress-nogui"
+          fi
 
-      # ============================================
-      # 4. Cài Python
-      # ============================================
+          echo "Cài: $PKGS"
+          sudo apt-get install -y -qq --no-install-recommends $PKGS
+
+      # ---------------------------------------------------------------
+      # 5. Cài Python và thư viện
+      # ---------------------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install Python packages
         run: |
-          python3 -m pip install --upgrade pip
+          python -m pip install --upgrade pip
+          pip install pymupdf pymupdf4llm python-pptx openpyxl charset-normalizer
 
-          pip install \
-            pandas \
-            openpyxl \
-            xlrd \
-            tabulate \
-            python-pptx
-
-
-      # ============================================
-      # 5. Convert DOCX
-      # ============================================
-      - name: Convert DOCX to Markdown
+      # ---------------------------------------------------------------
+      # 6. Ghi script chuyển đổi
+      # ---------------------------------------------------------------
+      - name: Write converter script
         shell: bash
         run: |
+          cat > "$RUNNER_TEMP/convert.py" <<'PY'
+          #!/usr/bin/env python3
+          # -*- coding: utf-8 -*-
+          """
+          Chuyển tài liệu trong input/ thành Markdown trong output/.
 
-          find input -type f -iname "*.docx" -print0 |
-          while IFS= read -r -d '' file; do
+          - Chỉ chuyển file mới hoặc đã thay đổi (so sánh SHA-256 trong manifest).
+          - Xóa .md "mồ côi" khi file nguồn bị xóa / đổi tên.
+          - Một file lỗi không làm dừng cả job; lỗi được ghi vào báo cáo.
+          """
 
-            relative="${file#input/}"
-            dir="$(dirname "$relative")"
-            filename="$(basename "$relative")"
-            name="${filename%.*}"
-
-            output="output/${dir}/${name}.md"
-
-            mkdir -p "$(dirname "$output")"
-
-            echo "========================================"
-            echo "DOCX: $file"
-            echo "OUT : $output"
-            echo "========================================"
-
-            pandoc "$file" \
-              --from=docx \
-              --to=gfm \
-              --wrap=none \
-              --output="$output"
-
-          done
-
-
-      # ============================================
-      # 6. Convert PPTX bằng python-pptx
-      # ============================================
-      - name: Convert PPTX to Markdown
-        shell: bash
-        run: |
-
-          python3 <<'PY'
-
+          import csv
+          import datetime as dt
+          import hashlib
+          import io
+          import json
           import os
-          from pptx import Presentation
-
-          INPUT = "input"
-          OUTPUT = "output"
-
-
-          def extract_shape_text(shape):
-
-              result = []
-
-              # Text thông thường
-              if hasattr(shape, "text") and shape.text:
-                  text = shape.text.strip()
-
-                  if text:
-                      result.append(text)
-
-              # Bảng
-              if getattr(shape, "has_table", False):
-
-                  rows = []
-
-                  for row in shape.table.rows:
-
-                      cells = []
-
-                      for cell in row.cells:
-                          cells.append(cell.text.strip().replace("\n", " "))
-
-                      rows.append(cells)
-
-                  if rows:
-
-                      # Header
-                      header = rows[0]
-
-                      result.append(
-                          "| " + " | ".join(header) + " |"
-                      )
-
-                      result.append(
-                          "| " +
-                          " | ".join(["---"] * len(header)) +
-                          " |"
-                      )
-
-                      for row in rows[1:]:
-
-                          # Bảo đảm số cột
-                          row = row + [""] * (len(header) - len(row))
-
-                          result.append(
-                              "| " +
-                              " | ".join(row[:len(header)]) +
-                              " |"
-                          )
-
-              return result
-
-
-          for root, dirs, files in os.walk(INPUT):
-
-              for filename in files:
-
-                  if not filename.lower().endswith(".pptx"):
-                      continue
-
-                  source = os.path.join(root, filename)
-
-                  relative = os.path.relpath(source, INPUT)
-
-                  relative_dir = os.path.dirname(relative)
-
-                  name = os.path.splitext(
-                      os.path.basename(relative)
-                  )[0]
-
-                  output_dir = os.path.join(
-                      OUTPUT,
-                      relative_dir
-                  )
-
-                  os.makedirs(output_dir, exist_ok=True)
-
-                  output = os.path.join(
-                      output_dir,
-                      name + ".md"
-                  )
-
-                  print(f"Converting PPTX: {source}")
-
-                  prs = Presentation(source)
-
-                  with open(
-                      output,
-                      "w",
-                      encoding="utf-8"
-                  ) as md:
-
-                      md.write(f"# {name}\n\n")
-
-                      for index, slide in enumerate(
-                          prs.slides,
-                          start=1
-                      ):
-
-                          md.write(
-                              f"## Slide {index}\n\n"
-                          )
-
-                          slide_text = []
-
-                          for shape in slide.shapes:
-
-                              slide_text.extend(
-                                  extract_shape_text(shape)
-                              )
-
-                          # Speaker notes
-                          try:
-
-                              notes = slide.notes_slide
-
-                              if notes and notes.notes_text_frame:
-
-                                  notes_text = (
-                                      notes.notes_text_frame.text
-                                      .strip()
-                                  )
-
-                                  if notes_text:
-                                      slide_text.append(
-                                          "### Speaker Notes\n\n"
-                                          + notes_text
-                                      )
-
-                          except Exception:
-                              pass
-
-
-                          if slide_text:
-
-                              for text in slide_text:
-
-                                  md.write(
-                                      text.strip()
-                                      + "\n\n"
-                                  )
-
-                          else:
-
-                              md.write(
-                                  "_Slide không có văn bản._\n\n"
-                              )
-
-          PY
-
-
-      # ============================================
-      # 7. Convert PDF
-      # ============================================
-      - name: Convert PDF to Markdown
-        shell: bash
-        run: |
-
-          find input -type f -iname "*.pdf" -print0 |
-          while IFS= read -r -d '' file; do
-
-            relative="${file#input/}"
-            dir="$(dirname "$relative")"
-            filename="$(basename "$relative")"
-            name="${filename%.*}"
-
-            output="output/${dir}/${name}.md"
-
-            mkdir -p "$(dirname "$output")"
-
-            echo "========================================"
-            echo "PDF: $file"
-            echo "OUT: $output"
-            echo "========================================"
-
-            # ----------------------------------------
-            # Bước 1: Thử lấy text trực tiếp
-            # ----------------------------------------
-
-            pdftotext \
-              -layout \
-              -enc UTF-8 \
-              "$file" \
-              "$output"
-
-            # ----------------------------------------
-            # Đếm số trang
-            # ----------------------------------------
-
-            pages=$(pdfinfo "$file" 2>/dev/null |
-                    awk '/^Pages:/ {print $2}')
-
-            if [ -z "$pages" ]; then
-              pages=1
-            fi
-
-            chars=$(wc -m < "$output")
-
-            echo "Pages : $pages"
-            echo "Chars : $chars"
-
-            # ----------------------------------------
-            # Tính mật độ text
-            # ----------------------------------------
-
-            if [ "$pages" -gt 0 ]; then
-              chars_per_page=$((chars / pages))
-            else
-              chars_per_page=$chars
-            fi
-
-            echo "Chars/page: $chars_per_page"
-
-            # ----------------------------------------
-            # Nếu text quá ít → OCR
-            # ----------------------------------------
-
-            if [ "$chars_per_page" -lt 100 ]; then
-
-              echo "PDF appears to be scanned."
-              echo "Running Vietnamese OCR..."
-
-              mkdir -p /tmp/ocr
-
-              ocrmypdf \
-                --language vie+eng \
-                --deskew \
-                --clean \
-                --force-ocr \
-                "$file" \
-                "/tmp/ocr/output.pdf"
-
-              pdftotext \
-                -layout \
-                -enc UTF-8 \
-                "/tmp/ocr/output.pdf" \
-                "$output"
-
-              rm -rf /tmp/ocr
-
-            fi
-
-            # ----------------------------------------
-            # Làm sạch nhẹ
-            # Không xóa nội dung
-            # ----------------------------------------
-
-            sed -i 's/\r$//' "$output"
-
-            sed -i 's/[[:space:]]*$//' "$output"
-
-          done
-
-
-      # ============================================
-      # 8. Convert XLS / XLSX
-      # ============================================
-      - name: Convert Excel to Markdown
-        shell: bash
-        run: |
-
-          python3 <<'PY'
-
-          import os
-          import pandas as pd
-
-          INPUT = "input"
-          OUTPUT = "output"
-
-
-          for root, dirs, files in os.walk(INPUT):
-
-              for filename in files:
-
-                  if not filename.lower().endswith(
-                      (".xls", ".xlsx")
-                  ):
-                      continue
-
-                  source = os.path.join(
-                      root,
-                      filename
-                  )
-
-                  relative = os.path.relpath(
-                      source,
-                      INPUT
-                  )
-
-                  relative_dir = os.path.dirname(
-                      relative
-                  )
-
-                  name = os.path.splitext(
-                      os.path.basename(relative)
-                  )[0]
-
-                  output_dir = os.path.join(
-                      OUTPUT,
-                      relative_dir
-                  )
-
-                  os.makedirs(
-                      output_dir,
-                      exist_ok=True
-                  )
-
-                  output = os.path.join(
-                      output_dir,
-                      name + ".md"
-                  )
-
-                  print(
-                      f"Converting Excel: {source}"
-                  )
-
+          import re
+          import shutil
+          import subprocess
+          import sys
+          import tempfile
+          import traceback
+          import unicodedata
+          from pathlib import Path
+
+          INPUT = Path(os.environ.get("INPUT_DIR", "input"))
+          OUTPUT = Path(os.environ.get("OUTPUT_DIR", "output"))
+          FORCE = os.environ.get("FORCE", "false").lower() == "true"
+          OCR_LANG = os.environ.get("OCR_LANG", "vie+eng")
+          MANIFEST = OUTPUT / ".convert-manifest.json"
+
+          # Tăng số này khi sửa logic chuyển đổi -> mọi file sẽ được chuyển lại
+          CONVERTER_VERSION = "2.0"
+
+          # Trang PDF có ít hơn số ký tự này được coi là trang scan
+          PDF_MIN_CHARS_PER_PAGE = 50
+
+          WORD = {".docx", ".doc", ".odt", ".rtf"}
+          SLIDE = {".pptx", ".ppt", ".odp"}
+          SHEET = {".xlsx", ".xlsm", ".xls", ".ods"}
+          PDF = {".pdf"}
+          TEXT = {".txt", ".md"}
+          CSV = {".csv", ".tsv"}
+          IMAGE = {".png", ".jpg", ".jpeg", ".tif", ".tiff", ".bmp", ".webp"}
+          SUPPORTED = WORD | SLIDE | SHEET | PDF | TEXT | CSV | IMAGE
+
+          # ---------------------------------------------------------------- tiện ích
+          def log(msg):
+              print(msg, flush=True)
+
+
+          def gh_warning(msg):
+              if os.environ.get("GITHUB_ACTIONS"):
+                  print(f"::warning::{msg}", flush=True)
+
+
+          def sha256(path):
+              h = hashlib.sha256()
+              with open(path, "rb") as f:
+                  for chunk in iter(lambda: f.read(1 << 20), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+
+
+          def run(cmd, cwd=None, timeout=900):
+              r = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout)
+              if r.returncode != 0:
+                  raise RuntimeError(f"{cmd[0]} lỗi ({r.returncode}): {(r.stderr or r.stdout).strip()[-800:]}")
+              return r.stdout
+
+
+          def cell_md(value):
+              """Chuẩn hóa nội dung một ô bảng Markdown."""
+              s = "" if value is None else str(value)
+              s = s.replace("\r\n", "\n").replace("\r", "\n").strip()
+              s = s.replace("\\", "\\\\").replace("|", "\\|")
+              s = re.sub(r"\n+", "<br>", s)
+              return s
+
+
+          def md_table(rows):
+              """rows: list[list[str]] -> bảng GFM (dòng đầu là header)."""
+              if not rows:
+                  return ""
+              width = max(len(r) for r in rows)
+              rows = [list(r) + [""] * (width - len(r)) for r in rows]
+              header = [cell_md(c) or " " for c in rows[0]]
+              out = ["| " + " | ".join(header) + " |", "|" + "|".join([" --- "] * width) + "|"]
+              for r in rows[1:]:
+                  out.append("| " + " | ".join(cell_md(c) for c in r) + " |")
+              return "\n".join(out)
+
+
+          def front_matter(title, source):
+              t = title.replace('"', '\\"')
+              s = str(source).replace('"', '\\"')
+              return f'---\ntitle: "{t}"\nsource: "{s}"\n---\n\n'
+
+
+          def read_text_any(path):
+              """Đọc file text với nhiều bảng mã (UTF-8, UTF-16, Windows-1258...)."""
+              raw = Path(path).read_bytes()
+              if raw.startswith(b"\xef\xbb\xbf"):
+                  return raw[3:].decode("utf-8", errors="replace")
+              if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+                  return raw.decode("utf-16", errors="replace")
+              try:
+                  return raw.decode("utf-8")
+              except UnicodeDecodeError:
+                  pass
+              # File tiếng Việt cũ trên Windows thường là Windows-1258
+              try:
+                  return unicodedata.normalize("NFC", raw.decode("cp1258"))
+              except UnicodeDecodeError:
+                  pass
+              try:
+                  from charset_normalizer import from_bytes
+                  best = from_bytes(raw).best()
+                  if best is not None:
+                      return str(best)
+              except Exception:
+                  pass
+              return raw.decode("latin-1")
+
+
+          def libreoffice_convert(src, fmt, workdir):
+              """Đổi .doc/.ppt/.xls/.odp/.ods sang định dạng mới bằng LibreOffice."""
+              soffice = shutil.which("soffice") or shutil.which("libreoffice")
+              if not soffice:
+                  raise RuntimeError("Chưa cài LibreOffice để đọc định dạng cũ")
+              profile = Path(workdir) / "lo-profile"
+              run([soffice, f"-env:UserInstallation=file://{profile}", "--headless",
+                   "--convert-to", fmt, "--outdir", str(workdir), str(src)], timeout=600)
+              out = Path(workdir) / (Path(src).stem + "." + fmt)
+              if not out.exists():
+                  raise RuntimeError("LibreOffice không tạo được file đầu ra")
+              return out
+
+
+          # ---------------------------------------------------------------- WORD
+          def convert_word(src, out_md, rel, tmp):
+              ext = src.suffix.lower()
+              if ext == ".doc":
+                  src = libreoffice_convert(src, "docx", tmp)
+                  ext = ".docx"
+              reader = {".docx": "docx", ".odt": "odt", ".rtf": "rtf"}[ext]
+
+              media_rel = Path("media") / out_md.stem          # tương đối so với thư mục .md
+              media_abs = out_md.parent / media_rel
+              if media_abs.exists():
+                  shutil.rmtree(media_abs)
+
+              # Bỏ thuộc tính kích thước ảnh để pandoc ghi ![](...) thay vì thẻ <img>
+              lua = Path(tmp) / "strip-img-attrs.lua"
+              lua.write_text(
+                  "function Image(el)\n"
+                  "  el.attributes = {}\n"
+                  "  el.classes = {}\n"
+                  "  el.identifier = ''\n"
+                  "  return el\n"
+                  "end\n", encoding="utf-8")
+
+              body = run([
+                  "pandoc", str(src.resolve()),
+                  f"--from={reader}", "--to=gfm", "--wrap=none",
+                  "--track-changes=accept",
+                  f"--extract-media={media_rel.as_posix()}",
+                  f"--lua-filter={lua}",
+              ], cwd=out_md.parent)
+
+              # pandoc đôi khi tạo thêm thư mục con "media" bên trong -> giữ nguyên đường dẫn nó ghi
+              extra = [media_abs] if media_abs.exists() else []
+              return front_matter(rel.stem, rel) + body, extra
+
+
+          # ---------------------------------------------------------------- SLIDE
+          def convert_slide(src, out_md, rel, tmp):
+              from pptx import Presentation
+              from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+
+              if src.suffix.lower() in (".ppt", ".odp"):
+                  src = libreoffice_convert(src, "pptx", tmp)
+
+              prs = Presentation(str(src))
+
+              def is_title(shape):
+                  if not shape.is_placeholder:
+                      return False
                   try:
+                      return shape.placeholder_format.type in (
+                          PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE, PP_PLACEHOLDER.VERTICAL_TITLE)
+                  except Exception:
+                      return False
 
-                      excel = pd.ExcelFile(
-                          source
-                      )
+              def sort_key(shape):
+                  return ((shape.top or 0) // 50000, shape.left or 0)   # trên xuống, trái sang
 
-                      with open(
-                          output,
-                          "w",
-                          encoding="utf-8"
-                      ) as md:
+              def text_frame_md(tf):
+                  lines = []
+                  for p in tf.paragraphs:
+                      t = "".join(r.text for r in p.runs) or p.text
+                      t = t.replace("\x0b", " ").strip()
+                      if not t:
+                          continue
+                      indent = "  " * (p.level or 0)
+                      lines.append(f"{indent}- {t}" if (p.level or len(tf.paragraphs) > 1) else t)
+                  return "\n".join(lines)
 
-                          md.write(
-                              f"# {name}\n\n"
-                          )
+              def shape_md(shape, out):
+                  st = shape.shape_type
+                  if st == MSO_SHAPE_TYPE.GROUP:
+                      for s in sorted(shape.shapes, key=sort_key):
+                          shape_md(s, out)
+                      return
+                  if getattr(shape, "has_table", False) and shape.has_table:
+                      rows = [[c.text for c in r.cells] for r in shape.table.rows]
+                      if rows:
+                          out.append(md_table(rows))
+                      return
+                  if getattr(shape, "has_chart", False) and shape.has_chart:
+                      ch = shape.chart
+                      title = ""
+                      try:
+                          if ch.has_title and ch.chart_title.has_text_frame:
+                              title = ch.chart_title.text_frame.text.strip()
+                      except Exception:
+                          pass
+                      try:
+                          cats = list(ch.plots[0].categories)
+                          rows = [["Danh mục"] + [s.name for s in ch.plots[0].series]]
+                          series_vals = [list(s.values) for s in ch.plots[0].series]
+                          for i, c in enumerate(cats):
+                              rows.append([c] + [fmt_cell(v[i]) if i < len(v) else "" for v in series_vals])
+                          out.append(f"**Biểu đồ{': ' + title if title else ''}**\n\n" + md_table(rows))
+                      except Exception:
+                          out.append(f"**Biểu đồ{': ' + title if title else ''}**")
+                      return
+                  if getattr(shape, "has_text_frame", False) and shape.has_text_frame:
+                      t = text_frame_md(shape.text_frame)
+                      if t:
+                          out.append(t)
 
-                          for sheet in excel.sheet_names:
+              parts = [front_matter(rel.stem, rel), f"# {rel.stem}\n"]
+              for i, slide in enumerate(prs.slides, start=1):
+                  title = ""
+                  blocks = []
+                  for shape in sorted(slide.shapes, key=sort_key):
+                      if not title and is_title(shape) and shape.has_text_frame:
+                          title = " ".join(shape.text_frame.text.split())
+                          continue
+                      shape_md(shape, blocks)
+                  parts.append(f"## Slide {i}" + (f": {title}" if title else "") + "\n")
+                  parts.append("\n\n".join(blocks) if blocks else "_Slide không có văn bản._")
+                  try:
+                      if slide.has_notes_slide:
+                          notes = slide.notes_slide.notes_text_frame.text.strip()
+                          if notes:
+                              parts.append("> **Ghi chú:** " + notes.replace("\n", "\n> "))
+                  except Exception:
+                      pass
+              return "\n\n".join(parts) + "\n", []
 
-                              md.write(
-                                  f"## Sheet: {sheet}\n\n"
-                              )
 
-                              try:
+          # ---------------------------------------------------------------- SHEET
+          def fmt_cell(v, number_format=""):
+              if v is None:
+                  return ""
+              if isinstance(v, dt.datetime):
+                  if v.time() == dt.time(0, 0):
+                      return v.strftime("%d/%m/%Y")
+                  return v.strftime("%d/%m/%Y %H:%M")
+              if isinstance(v, dt.date):
+                  return v.strftime("%d/%m/%Y")
+              if isinstance(v, dt.time):
+                  return v.strftime("%H:%M")
+              if isinstance(v, bool):
+                  return "TRUE" if v else "FALSE"
+              if isinstance(v, float):
+                  if "%" in (number_format or ""):
+                      return f"{v * 100:g}%"
+                  if v.is_integer():
+                      return str(int(v))
+                  return f"{v:.10g}"
+              return str(v).strip()
 
-                                  df = pd.read_excel(
-                                      source,
-                                      sheet_name=sheet,
-                                      dtype=str
-                                  )
 
-                                  df = df.fillna("")
+          def sheet_to_md(ws):
+              # Đọc lưới giá trị
+              grid = []
+              for row in ws.iter_rows():
+                  grid.append([fmt_cell(c.value, getattr(c, "number_format", "")) for c in row])
+              if not grid:
+                  return "_Sheet không có dữ liệu._"
 
-                                  # Xóa dòng hoàn toàn trống
-                                  df = df.loc[
-                                      df.astype(str)
-                                      .apply(
-                                          lambda row:
-                                          row.str.strip()
-                                          .ne("")
-                                          .any(),
-                                          axis=1
-                                      )
-                                  ]
+              # Ô gộp: ghi giá trị ô đầu vào mọi ô trong vùng (để bảng không bị hụt)
+              merged = ws.merged_cells.ranges if hasattr(ws, "merged_cells") else []
+              for rng in list(merged):
+                  r0, c0, r1, c1 = rng.min_row - 1, rng.min_col - 1, rng.max_row - 1, rng.max_col - 1
+                  if r0 >= len(grid):
+                      continue
+                  val = grid[r0][c0] if c0 < len(grid[r0]) else ""
+                  for r in range(r0, min(r1 + 1, len(grid))):
+                      for c in range(c0, c1 + 1):
+                          if c < len(grid[r]):
+                              grid[r][c] = val
 
-                                  # Xóa cột hoàn toàn trống
-                                  df = df.loc[
-                                      :,
-                                      df.astype(str)
-                                      .apply(
-                                          lambda col:
-                                          col.str.strip()
-                                          .ne("")
-                                          .any(),
-                                          axis=0
-                                      )
-                                  ]
+              # Bỏ dòng trống và cột trống
+              grid = [r for r in grid if any(x.strip() for x in r)]
+              if not grid:
+                  return "_Sheet không có dữ liệu._"
+              width = max(len(r) for r in grid)
+              grid = [r + [""] * (width - len(r)) for r in grid]
+              keep = [c for c in range(width) if any(r[c].strip() for r in grid)]
+              grid = [[r[c] for c in keep] for r in grid]
+              width = len(keep)
 
-                                  if df.empty:
+              # Tìm dòng header: dòng đầu tiên có >= 50% cột chứa giá trị KHÁC NHAU
+              def distinct_filled(r):
+                  return len({x for x in r if x.strip()})
 
-                                      md.write(
-                                          "_Sheet không có dữ liệu._\n\n"
-                                      )
+              header_idx = 0
+              need = max(2, (width + 1) // 2) if width > 1 else 1
+              for i, r in enumerate(grid[:30]):
+                  if distinct_filled(r) >= need:
+                      header_idx = i
+                      break
 
-                                  else:
+              parts = []
+              # Các dòng tiêu đề phía trên bảng (quốc hiệu, tên biểu mẫu...) -> đoạn văn
+              for r in grid[:header_idx]:
+                  seen, vals = set(), []
+                  for x in r:
+                      if x.strip() and x not in seen:
+                          seen.add(x)
+                          vals.append(x.replace("\n", " "))
+                  if vals:
+                      parts.append(" — ".join(vals))
+              parts.append(md_table(grid[header_idx:]))
+              return "\n\n".join(parts)
 
-                                      md.write(
-                                          df.to_markdown(
-                                              index=False,
-                                              tablefmt="github"
-                                          )
-                                      )
 
-                                      md.write(
-                                          "\n\n"
-                                      )
+          def convert_sheet(src, out_md, rel, tmp):
+              import openpyxl
 
-                              except Exception as e:
+              if src.suffix.lower() in (".xls", ".ods"):
+                  src = libreoffice_convert(src, "xlsx", tmp)
 
-                                  md.write(
-                                      f"> Lỗi đọc sheet: {e}\n\n"
-                                  )
-
+              # data_only=True: lấy kết quả công thức đã lưu, không lấy chuỗi công thức
+              wb = openpyxl.load_workbook(str(src), data_only=True)
+              parts = [front_matter(rel.stem, rel), f"# {rel.stem}\n"]
+              for ws in wb.worksheets:
+                  state = " _(sheet ẩn)_" if ws.sheet_state != "visible" else ""
+                  parts.append(f"## Sheet: {ws.title}{state}\n")
+                  try:
+                      parts.append(sheet_to_md(ws))
                   except Exception as e:
+                      parts.append(f"> Lỗi đọc sheet: {e}")
+              return "\n\n".join(parts) + "\n", []
 
-                      print(
-                          f"ERROR: {source}: {e}"
-                      )
 
-                      with open(
-                          output,
-                          "w",
-                          encoding="utf-8"
-                      ) as md:
+          def convert_csv(src, out_md, rel, tmp):
+              text = read_text_any(src)
+              try:
+                  dialect = csv.Sniffer().sniff(text[:20000], delimiters=",;\t|")
+              except csv.Error:
+                  dialect = csv.excel_tab if src.suffix.lower() == ".tsv" else csv.excel
+              rows = [r for r in csv.reader(io.StringIO(text), dialect) if any(x.strip() for x in r)]
+              body = md_table(rows) if rows else "_File không có dữ liệu._"
+              return front_matter(rel.stem, rel) + f"# {rel.stem}\n\n" + body + "\n", []
 
-                          md.write(
-                              f"# {name}\n\n"
-                          )
 
-                          md.write(
-                              f"> Không thể chuyển đổi: {e}\n"
-                          )
+          # ---------------------------------------------------------------- PDF
+          def pdf_needs_ocr(src):
+              """Trả về (tổng số trang, số trang scan). Kiểm tra TỪNG TRANG."""
+              import pymupdf
+              with pymupdf.open(str(src)) as doc:
+                  if doc.needs_pass:
+                      raise RuntimeError("PDF có mật khẩu")
+                  scanned = 0
+                  for page in doc:
+                      if len(page.get_text("text").strip()) < PDF_MIN_CHARS_PER_PAGE and (
+                              page.get_images(full=False) or page.get_drawings()):
+                          scanned += 1
+                  return doc.page_count, scanned
 
+
+          def pdf_to_md(pdf_path):
+              import pymupdf
+              import pymupdf4llm
+              with pymupdf.open(str(pdf_path)) as doc:
+                  try:
+                      chunks = pymupdf4llm.to_markdown(doc, page_chunks=True, write_images=False,
+                                                      show_progress=False)
+                  except TypeError:
+                      chunks = pymupdf4llm.to_markdown(doc, page_chunks=True)
+              pages = []
+              for i, ch in enumerate(chunks, start=1):
+                  text = ch.get("text", "") if isinstance(ch, dict) else str(ch)
+                  pages.append(f"<!-- Trang {i} -->\n\n{text.strip()}")
+              return "\n\n".join(pages)
+
+
+          def pdf_to_text_fallback(pdf_path):
+              txt = run(["pdftotext", "-layout", "-enc", "UTF-8", str(pdf_path), "-"])
+              pages = txt.split("\f")
+              return "\n\n".join(f"<!-- Trang {i} -->\n\n{p.rstrip()}"
+                                 for i, p in enumerate(pages, start=1) if p.strip())
+
+
+          def convert_pdf(src, out_md, rel, tmp):
+              note = ""
+              work = src
+              try:
+                  total, scanned = pdf_needs_ocr(src)
+              except ImportError:
+                  total, scanned = 0, 0
+              if scanned:
+                  log(f"   -> {scanned}/{total} trang là bản scan, chạy OCR ({OCR_LANG})")
+                  ocr_out = Path(tmp) / "ocr.pdf"
+                  # --skip-text: chỉ OCR trang chưa có chữ, trang có chữ giữ nguyên
+                  run(["ocrmypdf", "--language", OCR_LANG, "--skip-text", "--rotate-pages",
+                       "--deskew", "--optimize", "0", "--output-type", "pdf", "--jobs", "2",
+                       str(src), str(ocr_out)], timeout=3600)
+                  work = ocr_out
+                  note = f"> _Đã nhận dạng chữ (OCR) cho {scanned}/{total} trang scan; có thể còn sai chính tả._\n\n"
+              try:
+                  body = pdf_to_md(work)
+              except Exception as e:
+                  log(f"   -> pymupdf4llm lỗi ({e}), dùng pdftotext")
+                  body = pdf_to_text_fallback(work)
+              return front_matter(rel.stem, rel) + note + body + "\n", []
+
+
+          # ---------------------------------------------------------------- TEXT / IMAGE
+          def convert_text(src, out_md, rel, tmp):
+              text = read_text_any(src).replace("\r\n", "\n").replace("\r", "\n")
+              if src.suffix.lower() == ".md":
+                  return text, []
+              return front_matter(rel.stem, rel) + f"# {rel.stem}\n\n" + text, []
+
+
+          def convert_image(src, out_md, rel, tmp):
+              text = run(["tesseract", str(src), "stdout", "-l", OCR_LANG, "--psm", "3"])
+              note = "> _Văn bản nhận dạng từ ảnh (OCR); có thể còn sai chính tả._\n\n"
+              return front_matter(rel.stem, rel) + f"# {rel.stem}\n\n" + note + text, []
+
+
+          def converter_for(ext):
+              if ext in WORD:
+                  return convert_word
+              if ext in SLIDE:
+                  return convert_slide
+              if ext in SHEET:
+                  return convert_sheet
+              if ext in CSV:
+                  return convert_csv
+              if ext in PDF:
+                  return convert_pdf
+              if ext in TEXT:
+                  return convert_text
+              if ext in IMAGE:
+                  return convert_image
+              return None
+
+
+          # ---------------------------------------------------------------- làm sạch
+          def clean_md(text):
+              text = text.replace("\r\n", "\n").replace("\r", "\n").replace("\f", "\n")
+              text = unicodedata.normalize("NFC", text)       # dựng sẵn dấu tiếng Việt
+              text = text.replace("\u00a0", " ").replace("\u200b", "").replace("\ufeff", "")
+              lines = [ln.rstrip() for ln in text.split("\n")]
+              out, blank = [], 0
+              for ln in lines:
+                  if ln == "":
+                      blank += 1
+                      if blank > 1:
+                          continue
+                  else:
+                      blank = 0
+                  out.append(ln)
+              return "\n".join(out).strip() + "\n"
+
+
+          # ---------------------------------------------------------------- main
+          def output_paths(sources):
+              """Tên .md đầu ra. Nếu trùng tên khác đuôi trong cùng thư mục -> thêm đuôi."""
+              groups = {}
+              for rel in sources:
+                  groups.setdefault((rel.parent.as_posix(), rel.stem.lower()), []).append(rel)
+              mapping = {}
+              for (_, _), rels in groups.items():
+                  for rel in rels:
+                      if len(rels) > 1:
+                          name = f"{rel.stem}.{rel.suffix.lower().lstrip('.')}.md"
+                      else:
+                          name = f"{rel.stem}.md"
+                      mapping[rel] = rel.parent / name
+              return mapping
+
+
+          def remove_path(p):
+              p = OUTPUT / p
+              if p.is_dir():
+                  shutil.rmtree(p, ignore_errors=True)
+              elif p.exists():
+                  p.unlink()
+              # dọn thư mục rỗng
+              parent = p.parent
+              while parent != OUTPUT and parent.exists() and not any(parent.iterdir()):
+                  parent.rmdir()
+                  parent = parent.parent
+
+
+          def main():
+              if not INPUT.exists():
+                  log(f"Không có thư mục {INPUT}/")
+                  return 0
+              OUTPUT.mkdir(parents=True, exist_ok=True)
+
+              manifest = {}
+              if MANIFEST.exists():
+                  try:
+                      manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+                  except Exception:
+                      manifest = {}
+
+              # Lần chạy đầu (chưa có manifest) hoặc chạy lại toàn bộ:
+              # output/ do workflow sinh ra hoàn toàn -> xóa sạch để không còn file cũ
+              if FORCE or not manifest:
+                  log("Chuyển đổi lại toàn bộ: dọn sạch thư mục output/")
+                  for child in OUTPUT.iterdir():
+                      if child.is_dir():
+                          shutil.rmtree(child)
+                      else:
+                          child.unlink()
+                  manifest = {}
+
+              files_meta = manifest.get("files", {}) if manifest.get("version") == CONVERTER_VERSION else {}
+
+              sources, skipped_types = [], []
+              for p in sorted(INPUT.rglob("*")):
+                  if not p.is_file():
+                      continue
+                  rel = p.relative_to(INPUT)
+                  if any(part.startswith(".") for part in rel.parts) or p.name.startswith("~$"):
+                      continue          # file ẩn, file khóa tạm của Office
+                  if p.suffix.lower() in SUPPORTED:
+                      sources.append(rel)
+                  else:
+                      skipped_types.append(rel)
+
+              mapping = output_paths(sources)
+              new_meta, done, unchanged, failed, removed = {}, [], [], [], []
+
+              # 1) Xóa đầu ra của file nguồn đã bị xóa / đổi tên
+              for rel_str, meta in (manifest.get("files", {}) or {}).items():
+                  if Path(rel_str) not in mapping:
+                      for o in meta.get("outputs", []):
+                          remove_path(o)
+                      removed.append(rel_str)
+
+              # 2) Chuyển đổi
+              for rel in sources:
+                  src = INPUT / rel
+                  out_rel = mapping[rel]
+                  out_md = OUTPUT / out_rel
+                  digest = sha256(src)
+                  old = files_meta.get(rel.as_posix())
+                  if (old and old.get("sha256") == digest and old.get("outputs")
+                          and old["outputs"][0] == out_rel.as_posix() and out_md.exists()):
+                      new_meta[rel.as_posix()] = old
+                      unchanged.append(rel)
+                      continue
+
+                  # đầu ra cũ (nếu đổi tên đầu ra) -> xóa
+                  if old:
+                      for o in old.get("outputs", []):
+                          if o != out_rel.as_posix():
+                              remove_path(o)
+
+                  log(f"==> {rel}")
+                  out_md.parent.mkdir(parents=True, exist_ok=True)
+                  with tempfile.TemporaryDirectory() as tmp:
+                      try:
+                          text, extra = converter_for(src.suffix.lower())(src, out_md, rel, tmp)
+                          out_md.write_text(clean_md(text), encoding="utf-8")
+                          outputs = [out_rel.as_posix()] + [
+                              Path(e).relative_to(OUTPUT).as_posix() for e in extra]
+                          new_meta[rel.as_posix()] = {"sha256": digest, "outputs": outputs}
+                          done.append(rel)
+                      except Exception as e:
+                          msg = str(e).splitlines()[0][:300] if str(e) else type(e).__name__
+                          log(f"   !! LỖI: {msg}")
+                          traceback.print_exc()
+                          gh_warning(f"Không chuyển được {rel}: {msg}")
+                          out_md.write_text(front_matter(rel.stem, rel) +
+                                            f"# {rel.stem}\n\n> **Không chuyển đổi được:** {msg}\n",
+                                            encoding="utf-8")
+                          # không lưu sha256 -> lần chạy sau sẽ thử lại
+                          new_meta[rel.as_posix()] = {"sha256": None, "outputs": [out_rel.as_posix()]}
+                          failed.append((rel, msg))
+
+              MANIFEST.write_text(json.dumps({"version": CONVERTER_VERSION, "files": new_meta},
+                                             ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                                  encoding="utf-8")
+
+              # 3) Báo cáo
+              report = [
+                  "## Kết quả chuyển đổi Markdown",
+                  "",
+                  f"| Mục | Số lượng |",
+                  f"| --- | --- |",
+                  f"| Đã chuyển | {len(done)} |",
+                  f"| Không đổi (bỏ qua) | {len(unchanged)} |",
+                  f"| Đã xóa đầu ra cũ | {len(removed)} |",
+                  f"| Lỗi | {len(failed)} |",
+                  f"| Định dạng không hỗ trợ | {len(skipped_types)} |",
+              ]
+              if done:
+                  report += ["", "### Đã chuyển", ""] + [f"- `{r}` → `{mapping[r]}`" for r in done]
+              if failed:
+                  report += ["", "### Lỗi", ""] + [f"- `{r}`: {m}" for r, m in failed]
+              if skipped_types:
+                  report += ["", "### Không hỗ trợ", ""] + [f"- `{r}`" for r in skipped_types[:100]]
+              text = "\n".join(report) + "\n"
+              log("\n" + text)
+              summary = os.environ.get("GITHUB_STEP_SUMMARY")
+              if summary:
+                  with open(summary, "a", encoding="utf-8") as f:
+                      f.write(text)
+              return 0
+
+
+          if __name__ == "__main__":
+              sys.exit(main())
           PY
 
+      # ---------------------------------------------------------------
+      # 7. Chuyển đổi
+      # ---------------------------------------------------------------
+      - name: Convert to Markdown
+        env:
+          INPUT_DIR: input
+          OUTPUT_DIR: output
+          OCR_LANG: vie+eng
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && 'true' || 'false' }}
+          PYTHONUNBUFFERED: "1"
+        run: python "$RUNNER_TEMP/convert.py"
 
-      # ============================================
-      # 9. Convert TXT
-      # ============================================
-      - name: Convert TXT to Markdown
-        shell: bash
-        run: |
-
-          find input -type f -iname "*.txt" -print0 |
-          while IFS= read -r -d '' file; do
-
-            relative="${file#input/}"
-            dir="$(dirname "$relative")"
-            filename="$(basename "$relative")"
-            name="${filename%.*}"
-
-            output="output/${dir}/${name}.md"
-
-            mkdir -p "$(dirname "$output")"
-
-            {
-              echo "# $name"
-              echo
-              cat "$file"
-            } > "$output"
-
-          done
-
-
-      # ============================================
-      # 10. Làm sạch Markdown an toàn
-      # ============================================
-      - name: Clean Markdown
-        shell: bash
-        run: |
-
-          find output -type f -name "*.md" -print0 |
-          while IFS= read -r -d '' file; do
-
-            echo "Cleaning: $file"
-
-            # CRLF → LF
-            sed -i 's/\r$//' "$file"
-
-            # Xóa khoảng trắng cuối dòng
-            sed -i 's/[[:space:]]*$//' "$file"
-
-            # Không để quá 2 dòng trống liên tiếp
-            awk '
-              BEGIN { blank=0 }
-
-              /^[[:space:]]*$/ {
-                blank++
-                if (blank <= 2)
-                  print
-                next
-              }
-
-              {
-                blank=0
-                print
-              }
-            ' "$file" > "$file.tmp"
-
-            mv "$file.tmp" "$file"
-
-          done
-
-
-      # ============================================
-      # 11. Kiểm tra kết quả
-      # ============================================
-      - name: Show results
-        run: |
-
-          echo ""
-          echo "========================================"
-          echo "MARKDOWN FILES"
-          echo "========================================"
-
-          find output \
-            -type f \
-            -name "*.md" \
-            -print
-
-          echo ""
-          echo "========================================"
-          echo "FILE SIZES"
-          echo "========================================"
-
-          find output \
-            -type f \
-            -name "*.md" \
-            -exec wc -c {} \;
-
-
-      # ============================================
-      # 12. Commit kết quả
-      # ============================================
+      # ---------------------------------------------------------------
+      # 8. Commit và push kết quả (có thử lại nếu bị từ chối)
+      # ---------------------------------------------------------------
       - name: Commit Markdown files
         shell: bash
         run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config core.quotepath false
 
-          git config user.name \
-            "github-actions[bot]"
-
-          git config user.email \
-            "41898282+github-actions[bot]@users.noreply.github.com"
-
-          git add output/
+          git add -A output/
 
           if git diff --cached --quiet; then
-
-            echo "No Markdown changes."
-
-          else
-
-            git commit \
-              -m "Auto convert documents to Markdown"
-
-            git push
-
+            echo "Không có thay đổi Markdown."
+            exit 0
           fi
+
+          git commit -q -m "Auto convert documents to Markdown [skip ci]"
+
+          for i in 1 2 3; do
+            if git push; then
+              echo "Đã push."
+              exit 0
+            fi
+            echo "Push bị từ chối, lấy bản mới rồi thử lại ($i/3)..."
+            git pull --rebase -q
+          done
+
+          echo "::error::Không push được sau 3 lần thử"
+          exit 1
