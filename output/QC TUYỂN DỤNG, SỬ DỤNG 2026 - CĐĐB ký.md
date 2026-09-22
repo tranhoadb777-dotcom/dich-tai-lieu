@@ -1,3 +1,8 @@
+---
+title: "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký"
+source: "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký.docx"
+---
+
 <table style="width:100%;">
 <colgroup>
 <col style="width: 42%" />
@@ -454,7 +459,7 @@ Trường hợp có từ 02 người trở lên có kết quả tuyển dụng t
 
 Hợp đồng làm việc xác định thời hạn áp dụng đối với người được tuyển dụng làm viên chức kể từ ngày 01 tháng 7 năm 2020, trừ trường hợp quy định tại điểm b và điểm c khoản 2 Điều này.
 
-2\. Hợp đồng làm việc không xác định thời hạn là hợp đồng mà trong đó hai bên không xác định thời hạn, thời điểm chấm dứt hiệu lực của hợp đồng. Hợp đồng làm việc không xác định thời hạn áp dụng đối với các trường hợp sau đây:
+2\. Hợp đồng làm việc không xác định thời hạn là hợp đồng mà trong đó hai bên không xác định thời hạn, thời điểm chấm dứt hiệu lực của hợp đồng. Hợp đồng làm việc không xác định thời hạn áp dụng đối với các trường hợp sau đây:
 
 a\) Viên chức được tuyển dụng trước ngày 01 tháng 7 năm 2020;
 
@@ -858,9 +863,9 @@ c\) Đã hoàn thành và được cấp văn bằng tốt nghiệp khóa học 
 
 2\. Chi phí đền bù
 
-Chi phí đền bù bao gồm học phí và tất cả các khoản chi khác phục vụ cho khóa học, không tính lương và các khoản phụ cấp (nếu có).
+Chi phí đền bù bao gồm học phí và tất cả các khoản chi khác phục vụ cho khóa học, không tính lương và các khoản phụ cấp (nếu có).
 
-3. Cách tính chi phí đền bù
+3. Cách tính chi phí đền bù
 
 a\) Đối với trường hợp quy định tại các điểm a và b khoản 1 Điều này, viên chức phải trả 100% chi phí đền bù;
 
@@ -888,15 +893,15 @@ b\) Đối với các trường hợp quy định tại điểm c khoản 1 Đi�
 
 Trong đó:
 
-- S là chi phí đền bù;
+- S là chi phí đền bù;
 
 \- F là tổng chi phí do Nhà trường chi trả theo thực tế cho 01 người tham gia khóa học;
 
-\- T1 là thời gian yêu cầu phải phục vụ sau khi đã hoàn thành khóa học (hoặc các khóa học) được tính bằng số tháng làm tròn;
+\- T1 là thời gian yêu cầu phải phục vụ sau khi đã hoàn thành khóa học (hoặc các khóa học) được tính bằng số tháng làm tròn;
 
 \- T2 là thời gian đã phục vụ sau đào tạo được tính bằng số tháng làm tròn.
 
-Ví dụ: Anh B được cơ quan cử đi đào tạo thạc sỹ 02 năm (= 24 tháng), chi phí hết 30 triệu đồng. Theo cam kết, anh B phải phục vụ sau khi đi học về ít nhất là 48 tháng. Sau khi tốt nghiệp, anh B đã phục vụ cho cơ quan được 24 tháng. Sau đó, anh B tự ý bỏ việc. Chi phí đào tạo mà anh B phải đến bù là:
+Ví dụ: Anh B được cơ quan cử đi đào tạo thạc sỹ 02 năm (= 24 tháng), chi phí hết 30 triệu đồng. Theo cam kết, anh B phải phục vụ sau khi đi học về ít nhất là 48 tháng. Sau khi tốt nghiệp, anh B đã phục vụ cho cơ quan được 24 tháng. Sau đó, anh B tự ý bỏ việc. Chi phí đào tạo mà anh B phải đến bù là:
 
 <table>
 <colgroup>
@@ -948,7 +953,7 @@ c\) Cuộc họp của Hội đồng xét đền bù
 
 \- Chủ tịch Hội đồng có trách nhiệm tổ chức cuộc họp xét đền bù. Cuộc họp của Hội đồng chỉ được tiến hành khi có đầy đủ các thành viên.
 
-\- Trình tự cuộc họp:
+\- Trình tự cuộc họp:
 
 \+ Thư ký Hội đồng công bố quyết định thành lập Hội đồng;
 
@@ -958,7 +963,7 @@ c\) Cuộc họp của Hội đồng xét đền bù
 
 \+ Đại diện lãnh đạo đơn vị có viên chức phải đền bù chi phí đào tạo, báo cáo về quá trình công tác của VC;
 
-\+ Đại diện Phòng Kế hoạch – Tài chính báo cáo các khoản chi phí cho khóa học và xác định trường hợp phải đền bù chi phí đào tạo theo quy định tại khoản 3 Điều này;
+\+ Đại diện Phòng Kế hoạch – Tài chính báo cáo các khoản chi phí cho khóa học và xác định trường hợp phải đền bù chi phí đào tạo theo quy định tại khoản 3 Điều này;
 
 \+ Hội đồng thảo luận về trường hợp đền bù và chi phí đền bù.
 
@@ -972,7 +977,7 @@ a\) Chậm nhất trong thời hạn 120 ngày, kể từ ngày nhận được 
 
 b\) Chi phí đền bù được nộp cho Phòng Kế hoạch – Tài chính.
 
-c\) Trong trường hợp không thống nhất việc đền bù chi phí đào tạo, các bên liên quan có quyền khiếu nại hoặc khởi kiện theo quy định của pháp luật.
+c\) Trong trường hợp không thống nhất việc đền bù chi phí đào tạo, các bên liên quan có quyền khiếu nại hoặc khởi kiện theo quy định của pháp luật.
 
 **Mục 5**
 
@@ -1016,7 +1021,7 @@ c\) Viên chức được bổ nhiệm giữ chức vụ mới tương đương 
 
 11\. Có đủ sức khỏe để hoàn thành nhiệm vụ và chức trách được giao.
 
-12\. Không thuộc các trường hợp bị cấm đảm nhiệm chức vụ theo quy định của Đảng và của pháp luật; không đang trong thời hạn xử lý kỷ luật, không trong thời gian thực hiện các quy định liên quan đến kỷ luật viên chức quy định tại Điều 56 Luật Viên chức được sửa đổi, bổ sung tại khoản 8 Điều 2 Luật sửa đổi, bổ sung một số điều của Luật Cán bộ, công chức và Luật Viên chức.
+12\. Không thuộc các trường hợp bị cấm đảm nhiệm chức vụ theo quy định của Đảng và của pháp luật; không đang trong thời hạn xử lý kỷ luật, không trong thời gian thực hiện các quy định liên quan đến kỷ luật viên chức quy định tại Điều 56 Luật Viên chức được sửa đổi, bổ sung tại khoản 8 Điều 2 Luật sửa đổi, bổ sung một số điều của Luật Cán bộ, công chức và Luật Viên chức.
 
 **Điều 48. Về bổ nhiệm, bố trí, sử dụng đối với viên chức có vi phạm, khuyết điểm hoặc bị kỷ luật hoặc đang trong quá trình điều tra, thanh tra, kiểm tra, giải quyết tố cáo, khiếu nại, xem xét trách nhiệm**
 
@@ -1436,11 +1441,11 @@ Viên chức sau khi bị kỷ luật tự nguyện xin từ chức mà có th�
 
 1.  Viên chức được giải quyết thôi việc trong các trường hợp sau:
 
-> a\) Chấm dứt hợp đồng làm việc theo Điều 34 của Bộ luật Lao động.
+> a\) Chấm dứt hợp đồng làm việc theo Điều 34 của Bộ luật Lao động.
 
-b\) Viên chức đơn phương chấm dứt hợp đồng làm việc theo quy định tại khoản 4, khoản 5 và khoản 6 Điều 29 Luật Viên chức;
+b\) Viên chức đơn phương chấm dứt hợp đồng làm việc theo quy định tại khoản 4, khoản 5 và khoản 6 Điều 29 Luật Viên chức;
 
-c\) Nhà trường đơn phương chấm dứt hợp đồng làm việc với viên chức khi có một trong các trường hợp quy định tại các điểm c, d và đ khoản 1 Điều 29 Luật Viên chức và khoản 4 Điều 2 Luật sửa đổi, bổ sung một số điều của Luật Cán bộ, công chức và Luật Viên chức;
+c\) Nhà trường đơn phương chấm dứt hợp đồng làm việc với viên chức khi có một trong các trường hợp quy định tại các điểm c, d và đ khoản 1 Điều 29 Luật Viên chức và khoản 4 Điều 2 Luật sửa đổi, bổ sung một số điều của Luật Cán bộ, công chức và Luật Viên chức;
 
 d\) Nhà trường không ký tiếp hợp đồng làm việc với viên chức khi kết thúc hợp đồng làm việc xác định thời hạn.
 
@@ -1456,7 +1461,7 @@ d\) Do yêu cầu công tác và chưa bố trí được người thay thế.
 
 3\. Thủ tục giải quyết thôi việc:
 
-a\) Trường hợp viên chức đơn phương chấm dứt hợp đồng làm việc thì phải thông báo bằng văn bản gửi cho Hiệu trưởng Nhà trường biết theo quy định tại khoản 6 Điều 29 Luật Viên chức.
+a\) Trường hợp viên chức đơn phương chấm dứt hợp đồng làm việc thì phải thông báo bằng văn bản gửi cho Hiệu trưởng Nhà trường biết theo quy định tại khoản 6 Điều 29 Luật Viên chức.
 
 Trong thời hạn 05 ngày làm việc kể từ ngày nhận được văn bản đề nghị của viên chức, nếu đồng ý cho viên chức thôi việc thì Hiệu trưởng Nhà trường chấm dứt hợp đồng làm việc và giải quyết chế độ thôi việc cho viên chức theo quy định. Trường hợp không đồng ý cho viên chức thôi việc thì phải trả lời viên chức bằng văn bản và nêu rõ lý do theo quy định.
 
@@ -1468,7 +1473,7 @@ a\) Viên chức được cơ quan, đơn vị có thẩm quyền đồng ý chu
 
 b\) Viên chức đã có thông báo nghỉ hưu hoặc thuộc đối tượng tinh giản biên chế theo quy định của pháp luật;
 
-c\) Viên chức thuộc trường hợp không được hưởng trợ cấp thôi việc theo quy định tại khoản 2 Điều 29 Luật Viên chức.
+c\) Viên chức thuộc trường hợp không được hưởng trợ cấp thôi việc theo quy định tại khoản 2 Điều 29 Luật Viên chức.
 
 **Điều 64. Thủ tục nghỉ hưu**
 
@@ -1504,7 +1509,7 @@ d\) Kể từ thời điểm nghỉ hưu ghi trong quyết định nghỉ hưu, 
 
 1\. Viên chức đã nghỉ hưu ký hợp đồng vụ, việc với Nhà trường, ngoài lương hưu được hưởng theo quy định còn được hưởng khoản thù lao theo thỏa thuận trong hợp đồng đã ký kết.
 
-2\. Nhà trường có trách nhiệm bảo đảm các điều kiện làm việc phục vụ hoạt động chuyên môn quy định trong hợp đồng vụ, việc, bao gồm các quyền của viên chức về hoạt động nghề nghiệp được quy định tại các khoản 1, 3, 4, 5, 6 và khoản 7 Điều 11 Luật Viên chức.
+2\. Nhà trường có trách nhiệm bảo đảm các điều kiện làm việc phục vụ hoạt động chuyên môn quy định trong hợp đồng vụ, việc, bao gồm các quyền của viên chức về hoạt động nghề nghiệp được quy định tại các khoản 1, 3, 4, 5, 6 và khoản 7 Điều 11 Luật Viên chức.
 
 3\. Chế độ và thời gian làm việc của viên chức đã nghỉ hưu được quy định cụ thể trong hợp đồng vụ, việc ký với Nhà trường.
 
@@ -1607,7 +1612,7 @@ PHỤ LỤC**
 <tr>
 <th style="text-align: center;"><em>(Dán ảnh 4x6)<br />
 <sup>(3)</sup></em></th>
-<th> </th>
+<th> </th>
 <th colspan="2" style="text-align: center;"><p><strong>PHIẾU ĐĂNG KÝ DỰ TUYỂN</strong></p>
 <p><strong>Vị trí dự tuyển<sup>(1)</sup>:</strong></p>
 <p><strong>Đơn vị dự tuyển<sup>(2)</sup>:</strong></p>
@@ -1653,35 +1658,35 @@ Ngày, tháng, năm sinh:</td>
 
 | **Mối quan hệ** | **Họ và tên** | **Ngày, tháng, năm sinh** | **Quê quán, nghề nghiệp, chức danh, chức vụ, đơn vị công tác, học tập, nơi ở (trong, ngoài nước); thành viên các tổ chức chính trị - xã hội)** |
 |:--:|----|----|----|
-|   |   |   |   |
-|   |   |   |   |
-|   |   |   |   |
+|   |   |   |   |
+|   |   |   |   |
+|   |   |   |   |
 |  |  |  |  |
-|   |   |   |   |
+|   |   |   |   |
 
 **III. THÔNG TIN VỀ QUÁ TRÌNH ĐÀO TẠO**
 
 | **Tên trường, cơ sở đào tạo cấp** | **Ngày, tháng, năm cấp văn bằng, chứng chỉ** | **Trình độ văn bằng, chứng chỉ** | **Số hiệu của văn bằng, chứng chỉ** | **Chuyên ngành đào tạo (ghi theo bảng điểm)** | **Ngành đào tạo** | **Hình thức đào tạo** | **Xếp loại bằng, chứng chỉ** |
 |:--:|----|----|----|----|----|----|----|
-|   |   |   |   |   |   |   |   |
-|   |   |   |   |   |   |   |   |
-|   |   |   |   |   |   |   |   |
-|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
 |  |  |  |  |  |  |  |  |
-|   |   |   |   |   |   |   |   |
-|   |   |   |   |   |   |   |   |
-|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
+|   |   |   |   |   |   |   |   |
 
 **IV. THÔNG TIN VỀ QUÁ TRÌNH CÔNG TÁC (nếu có)**
 
 | **Từ ngày, tháng, năm đến ngày, tháng, năm** | **Cơ quan, tổ chức, đơn vị công tác** |
 |:--:|----|
-|   |   |
-|   |   |
-|   |   |
-|   |   |
-|   |   |
-|   |   |
+|   |   |
+|   |   |
+|   |   |
+|   |   |
+|   |   |
+|   |   |
 |  |  |
 
 **V. THÔNG TIN ĐĂNG KÝ DỰ TUYỂN**
@@ -1706,7 +1711,7 @@ Ngày, tháng, năm sinh:</td>
 <tr>
 <td style="text-align: left;"><p><strong>3. Đăng ký dự thi môn ngoại ngữ</strong> <em>(Đối với các vị trí việc làm tại thông báo tuyển dụng không yêu cầu ngoại ngữ thì thí sinh không điền phần này)</em></p>
 <p><strong>3.1. Đăng ký dự thi ngoại ngữ</strong> <sup>(5)</sup>:</p>
-<p><strong>Tiếng Anh □   Tiếng Nga □   Tiếng Pháp □   Tiếng Đức □  Tiếng Trung Quốc □</strong></p>
+<p><strong>Tiếng Anh □   Tiếng Nga □   Tiếng Pháp □   Tiếng Đức □  Tiếng Trung Quốc □</strong></p>
 <p><strong>Ngoại ngữ khác theo yêu cầu vị trí việc làm:</strong></p></td>
 </tr>
 <tr>
@@ -1730,7 +1735,7 @@ Tôi xin cam đoan và chịu trách nhiệm trước pháp luật về thông t
 </colgroup>
 <thead>
 <tr>
-<th><p> <em><strong><br />
+<th><p> <em><strong><br />
 Ghi chú:</strong></em></p>
 <p>1. Ghi đúng tên vị trí việc làm đăng ký dự tuyển theo Thông báo tuyển dụng;</p>
 <p>2. Ghi đúng tên cơ quan, tổ chức, đơn vị đăng ký tuyển dụng đối với từng nguyện vọng theo đúng Thông báo tuyển dụng;</p>
@@ -1755,7 +1760,7 @@ Mẫu số 02**
 </colgroup>
 <tbody>
 <tr>
-<td style="text-align: center;"><p> UBND TỈNH ĐIỆN BIÊN</p>
+<td style="text-align: center;"><p> UBND TỈNH ĐIỆN BIÊN</p>
 <p><strong>TRƯỜNG CAO ĐẲNG ĐIỆN BIÊN</strong></p>
 <p>Số: /HĐLV-CĐĐB</p></td>
 <td style="text-align: center;"><p><strong>CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></p>
@@ -1893,8 +1898,6 @@ Thoả thuận ký kết hợp đồng làm việc và cam kết làm đúng nh�
 
 \- Hợp đồng này làm tại………………………………………………ngày …… tháng ….. năm ………
 
- 
-
 <table style="width:98%;">
 <colgroup>
 <col style="width: 48%" />
@@ -1912,7 +1915,7 @@ Thoả thuận ký kết hợp đồng làm việc và cam kết làm đúng nh�
 </tbody>
 </table>
 
-*** ***
+*** ***
 
 **Mẫu số 03**
 
@@ -1923,7 +1926,7 @@ Thoả thuận ký kết hợp đồng làm việc và cam kết làm đúng nh�
 </colgroup>
 <tbody>
 <tr>
-<td style="text-align: center;"><p> UBND TỈNH ĐIỆN BIÊN</p>
+<td style="text-align: center;"><p> UBND TỈNH ĐIỆN BIÊN</p>
 <p><strong>TRƯỜNG CAO ĐẲNG ĐIỆN BIÊN</strong></p>
 <p>Số: /HĐLV-CĐĐB</p></td>
 <td style="text-align: center;"><p><strong>CỘNG HOÀ XÃ HỘI CHỦ NGHĨA VIỆT NAM</strong></p>
@@ -2068,4 +2071,4 @@ Hợp đồng này làm tại ………., ngày ….. tháng …… năm ……�
 </tbody>
 </table>
 
-*** ***
+*** ***

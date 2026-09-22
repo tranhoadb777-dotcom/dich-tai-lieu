@@ -1,0 +1,41 @@
+{
+  "files": {
+    "1. BIỂU THỐNG KÊ THÔNG TIN VBCC - CĐĐB (01.7.2026).xlsx": {
+      "outputs": [
+        "1. BIỂU THỐNG KÊ THÔNG TIN VBCC - CĐĐB (01.7.2026).md"
+      ],
+      "sha256": "4631a92ccb77966668a58ad1e7cf965497fc0f422faf88909ba813393c974d2c"
+    },
+    "129_2025_QH15_675261 (1).docx": {
+      "outputs": [
+        "129_2025_QH15_675261 (1).md"
+      ],
+      "sha256": "1c0a65ab741cb176526fc363c139722a637091b5bedf23c2b204763978816645"
+    },
+    "259_2026_ND-CP_713417 (1).docx": {
+      "outputs": [
+        "259_2026_ND-CP_713417 (1).md"
+      ],
+      "sha256": "03109409b0a541e552bef016e1791088211f7d23c6abfb2704e7c8ee6cc83c2b"
+    },
+    "Du thao Chuong II - Tuyen dung vien chuc (Hoa).docx": {
+      "outputs": [
+        "Du thao Chuong II - Tuyen dung vien chuc (Hoa).md"
+      ],
+      "sha256": "ee4be8f1df44663aa436477a07f7a8b4fe1487aedc6f284bfa0b2eba8a396ffe"
+    },
+    "Export_Doi_Ngu_lan_cuoi_h.xlsx": {
+      "outputs": [
+        "Export_Doi_Ngu_lan_cuoi_h.md"
+      ],
+      "sha256": "29ced59ce2e9d34fd46786feaa19814c39eb881cba2623c4b3d07b4106996289"
+    },
+    "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký.docx": {
+      "outputs": [
+        "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký.md"
+      ],
+      "sha256": "08bb6c5c9f71b57a5f34bd7c9372321573abea1401c6e1bdf9afc4fb90b4d65c"
+    }
+  },
+  "version": "2.0"
+}
