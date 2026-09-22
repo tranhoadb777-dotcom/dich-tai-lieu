@@ -1,47 +1,51 @@
-name: Tự động chuyển PDF/XLSX/DOCX sang Markdown
+name: Convert DOCX to Markdown
 
 on:
   push:
     paths:
-      - 'input/**' # Kích hoạt khi có file mới trong thư mục input
+      - "input/**/*.docx"
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   convert:
     runs-on: ubuntu-latest
+
     steps:
-      - name: 1. Đọc mã nguồn
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 2. Cài đặt Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Install Pandoc
+        uses: pandoc/actions/setup@v1
 
-      - name: 3. Cài đặt công cụ MarkItDown
-        run: |
-          python -m pip install --upgrade pip
-          pip install markitdown
-
-      - name: 4. Quét và dịch file sang Markdown
+      - name: Convert DOCX to Markdown
+        shell: bash
         run: |
           mkdir -p output
-          for file in input/*; do
-            if [ -f "$file" ]; then
-              filename=$(basename "$file")
-              extension="${filename##*.}"
-              filename_no_ext="${filename%.*}"
-              
-              if [ "$extension" = "pdf" ] || [ "$extension" = "xlsx" ] || [ "$extension" = "docx" ]; then
-                echo "Đang xử lý file: $filename"
-                markitdown "$file" > "output/${filename_no_ext}.md"
-              fi
-            fi
+
+          find input -type f -iname "*.docx" -print0 | while IFS= read -r -d '' file; do
+            filename="$(basename "$file" .docx)"
+
+            echo "Converting: $file"
+
+            pandoc "$file" \
+              --from=docx \
+              --to=gfm \
+              --output="output/${filename}.md"
           done
 
-      - name: 5. Lưu file kết quả ngược lại GitHub
+      - name: Commit Markdown
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@://github.com"
-          git add output/*.md
-          git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Tự động dịch tài liệu hoàn tất!"
-          git push
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add output/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Auto convert DOCX to Markdown"
+            git push
+          fi
