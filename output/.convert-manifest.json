@@ -36,17 +36,59 @@
       ],
       "sha256": "29ced59ce2e9d34fd46786feaa19814c39eb881cba2623c4b3d07b4106996289"
     },
+    "Phiếu yêu cầu thực hiện_góp ý 4 quy chế.doc": {
+      "outputs": [
+        "Phiếu yêu cầu thực hiện_góp ý 4 quy chế.md"
+      ],
+      "sha256": "dc5d0683dd9a54c6eba4e0a8db29a27fa2ed29afb019051a1560b6ec68ce3b4a"
+    },
     "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký.docx": {
       "outputs": [
         "QC TUYỂN DỤNG, SỬ DỤNG 2026 - CĐĐB ký.md"
       ],
       "sha256": "08bb6c5c9f71b57a5f34bd7c9372321573abea1401c6e1bdf9afc4fb90b4d65c"
     },
+    "QUY CHẾ  TỔ CHỨC, HOẠT ĐỘNG CĐ ĐB 09.2025 (31.10) Ký.docx": {
+      "outputs": [
+        "QUY CHẾ  TỔ CHỨC, HOẠT ĐỘNG CĐ ĐB 09.2025 (31.10) Ký.md"
+      ],
+      "sha256": "6e95500bf0ae19598ff44ba97a72bfefa352f5c8fe2d19a2f8a39ca8e644d769"
+    },
     "T5.2026.QD-phan-cap-quan-ly-to-chuc-bo-may-can-bo-sau-khi-co-chu-truong-cua-TTTU-_annh-11-05-2026_10h12p56(12.05.2026_08h19p43)_signed.pdf": {
       "outputs": [
         "T5.2026.QD-phan-cap-quan-ly-to-chuc-bo-may-can-bo-sau-khi-co-chu-truong-cua-TTTU-_annh-11-05-2026_10h12p56(12.05.2026_08h19p43)_signed.md"
       ],
       "sha256": "3926f8c09bd2d55e1eb21f57716781c00ddfb3d5b0320bc40087606181546e25"
+    },
+    "bien-ban-35-bb-cddb.docx": {
+      "outputs": [
+        "bien-ban-35-bb-cddb.md"
+      ],
+      "sha256": "48c93531fa45e4c8795d4841dd9a40afc38bf8f2d96e92144f8f279370559312"
+    },
+    "ke-hoach-29-kh-cddb.docx": {
+      "outputs": [
+        "ke-hoach-29-kh-cddb.md"
+      ],
+      "sha256": "2e8e45e8a1eddb38ae027f24ea95a38905175ba500ae3a03f3c622f6b401e04b"
+    },
+    "quyet-dinh-28-qd-cddb.docx": {
+      "outputs": [
+        "quyet-dinh-28-qd-cddb.md"
+      ],
+      "sha256": "f7e3ba45315976b5a0bedc6d57354d228b4cd66192d9959dfe3a1f440dde1c81"
+    },
+    "so-sanh-quy-che-voi-thong-tu-63.docx": {
+      "outputs": [
+        "so-sanh-quy-che-voi-thong-tu-63.md"
+      ],
+      "sha256": "225738ef5aa23d7ab9a3bb2340931d0684127d64752b176415279b2480b84c05"
+    },
+    "thong-tu-63-2026-tt-bgddt.docx": {
+      "outputs": [
+        "thong-tu-63-2026-tt-bgddt.md"
+      ],
+      "sha256": "01da1514923d5a55b33eadd5afd1ce8ec447583650140eec147322a58b79eebb"
     }
   },
   "version": "2.0"
