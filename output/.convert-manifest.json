@@ -18,6 +18,12 @@
       ],
       "sha256": "03109409b0a541e552bef016e1791088211f7d23c6abfb2704e7c8ee6cc83c2b"
     },
+    "Bieu_nhan_luc_chuyen_sau_So_nganh.xlsx": {
+      "outputs": [
+        "Bieu_nhan_luc_chuyen_sau_So_nganh.md"
+      ],
+      "sha256": "dbe190aa9bcc5bdc03bf8891117e37efde249c75a7d6437bac8361935b62e039"
+    },
     "Chuyen de - Gioi thieu AI va Chuyen doi so (ban thiet ke lai, HSSV Cao dang Dien Bien)_5 (1).pptx": {
       "outputs": [
         "Chuyen de - Gioi thieu AI va Chuyen doi so (ban thiet ke lai, HSSV Cao dang Dien Bien)_5 (1).md"
