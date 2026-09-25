@@ -48,6 +48,12 @@
       ],
       "sha256": "08bb6c5c9f71b57a5f34bd7c9372321573abea1401c6e1bdf9afc4fb90b4d65c"
     },
+    "QD-phan-cong-nhiem-vu-BCD-chuyen-doi-so.pdf": {
+      "outputs": [
+        "QD-phan-cong-nhiem-vu-BCD-chuyen-doi-so.md"
+      ],
+      "sha256": "f7fae705a6b28a896e57eb4b92b69a88ba2fced9f69732894de2fd02ef6b7cd2"
+    },
     "QUY CHẾ  TỔ CHỨC, HOẠT ĐỘNG CĐ ĐB 09.2025 (31.10) Ký.docx": {
       "outputs": [
         "QUY CHẾ  TỔ CHỨC, HOẠT ĐỘNG CĐ ĐB 09.2025 (31.10) Ký.md"
